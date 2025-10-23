@@ -226,6 +226,17 @@ func GetWorkspace(workspaceId int) Workspace {
 	return workspace
 }
 
+// Delete an organization
+func DeleteOrg(orgId int, orgName string) {
+	url := fmt.Sprintf("orgs/%d/%s", orgId, orgName)
+	response, status := httpDelete(url, "")
+	if status == http.StatusOK {
+		fmt.Printf("Organization %d : %s deleted\t✅\n", orgId, orgName)
+	} else {
+		fmt.Printf("Unable to delete organization %d : %s : %s ❗️\n", orgId, orgName, response)
+	}
+}
+
 // Delete a workspace
 func DeleteWorkspace(workspaceId int) {
 	url := fmt.Sprintf("workspaces/%d", workspaceId)

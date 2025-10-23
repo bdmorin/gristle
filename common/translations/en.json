@@ -1,71 +1,72 @@
 {
-    "app": {
-        "title": "GRIST : API querying"
-    },
-    "col": {
-        "columns": "Columns",
-        "directUsers": "Direct users",
-        "ident": "ID",
-        "name": "Name",
-        "nbCols": "Number of columns",
-        "nbDocs": "Number of documents",
-        "nbRows": "Number of rows",
-        "pinned": "Pinned"
-    },
-    "config": {
-        "actual": "Actual configuration",
-        "config": "Would you like to configure (Y/N) ?",
-        "connectError": "Connection error to the server. The configuration does not seem correct",
-        "connectTest": "Connection test",
-        "new": "New configuration",
-        "savedIn": "Configuration saved in ",
-        "title": "Setting the url and token for access to the grist server",
-        "token": "User token (API key)",
-        "url": "URL of the Grist server",
-        "urlSet": "Grist server URL (that starts with https:// and without '/' in the end)"
-    },
-    "help": {
-        "accepted": "Accepted orders",
-        "config": "configure url & token of Grist server",
-        "deleteDoc": "delete a document",
-        "deleteUser": "delete a user",
-        "deleteWorkspace": "delete a workspace",
-        "docAccess": "list of users with access to the document",
-        "docDesc": "document description",
-        "docExportCsv": "export document's table as CSV in stdout",
-        "docExportExcel": "export document as <workspace name>_<doc name>.xlsx Excel file",
-        "docExportGrist": "export document as <workspace name>_<doc name>.grist Grist file",
-        "allDocsMove": "moves all documents from a workspace to another",
-        "docMove": "moves a document in a workspace",
-        "docPurge": "purges document history (retains last 3 operations by default)",
-        "orgDesc": "organization description",
-        "orgList": "list of organizations",
-        "userImport": "import users from stdin",
-        "userList": "list of users with their roles",
-        "version": "displays the version of the program",
-        "workspaceAccess": "list of users with access to the workspace",
-        "workspaceDesc": "workspace description"
-    },
-    "org": {
-        "contains": "Contains {{.nb}} workspace(s)",
-        "name": "Organization"
-    },
-    "questions": {
-        "abort": "abort",
-        "cancel": "cancel",
-        "confirm": "confirm",
-        "continue": "continue",
-        "exit": "exit",
-        "isOk": "Is it ok (Y/N) ?",
-        "n": "n",
-        "no": "no",
-        "ok": "ok",
-        "quit": "quit",
-        "y": "y",
-        "yes": "yes"
-    },
-    "workspace": {
-        "contains": "Contains {{.nb}} document(s)",
-        "name": "Workspace"
-    }
+  "app": {
+    "title": "GRIST : API querying"
+  },
+  "col": {
+    "columns": "Columns",
+    "directUsers": "Direct users",
+    "ident": "ID",
+    "name": "Name",
+    "nbCols": "Number of columns",
+    "nbDocs": "Number of documents",
+    "nbRows": "Number of rows",
+    "pinned": "Pinned"
+  },
+  "config": {
+    "actual": "Actual configuration",
+    "config": "Would you like to configure (Y/N) ?",
+    "connectError": "Connection error to the server. The configuration does not seem correct",
+    "connectTest": "Connection test",
+    "new": "New configuration",
+    "savedIn": "Configuration saved in ",
+    "title": "Setting the url and token for access to the grist server",
+    "token": "User token (API key)",
+    "url": "URL of the Grist server",
+    "urlSet": "Grist server URL (that starts with https:// and without '/' in the end)"
+  },
+  "help": {
+    "accepted": "Accepted orders",
+    "config": "configure url & token of Grist server",
+    "deleteDoc": "delete a document",
+    "deleteOrg": "delete an organization",
+    "deleteUser": "delete a user",
+    "deleteWorkspace": "delete a workspace",
+    "docAccess": "list of users with access to the document",
+    "docDesc": "document description",
+    "docExportCsv": "export document's table as CSV in stdout",
+    "docExportExcel": "export document as <workspace name>_<doc name>.xlsx Excel file",
+    "docExportGrist": "export document as <workspace name>_<doc name>.grist Grist file",
+    "allDocsMove": "moves all documents from a workspace to another",
+    "docMove": "moves a document in a workspace",
+    "docPurge": "purges document history (retains last 3 operations by default)",
+    "orgDesc": "organization description",
+    "orgList": "list of organizations",
+    "userImport": "import users from stdin",
+    "userList": "list of users with their roles",
+    "version": "displays the version of the program",
+    "workspaceAccess": "list of users with access to the workspace",
+    "workspaceDesc": "workspace description"
+  },
+  "org": {
+    "contains": "Contains {{.nb}} workspace(s)",
+    "name": "Organization"
+  },
+  "questions": {
+    "abort": "abort",
+    "cancel": "cancel",
+    "confirm": "confirm",
+    "continue": "continue",
+    "exit": "exit",
+    "isOk": "Is it ok (Y/N) ?",
+    "n": "n",
+    "no": "no",
+    "ok": "ok",
+    "quit": "quit",
+    "y": "y",
+    "yes": "yes"
+  },
+  "workspace": {
+    "contains": "Contains {{.nb}} document(s)",
+    "name": "Workspace"
+  }
 }

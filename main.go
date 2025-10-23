@@ -185,6 +185,16 @@ func main() {
 		{
 			if len(args) > 2 {
 				switch arg2 := args[1]; arg2 {
+				case "org":
+					if len(args) == 4 {
+						orgId, err := strconv.Atoi(args[2])
+						orgName := args[3]
+						if err == nil {
+							gristtools.DeleteOrg(orgId, orgName)
+						}
+					} else {
+						gristtools.Help()
+					}
 				case "workspace":
 					if len(args) == 3 {
 						idWorkspace, err := strconv.Atoi(args[2])

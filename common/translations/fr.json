@@ -29,6 +29,7 @@
         "accepted": "Commandes acceptées",
         "config": "configurer l'url et le token du serveur Grist",
         "deleteDoc": "supprimer un document",
+        "deleteOrg": "supprimer une organisation",
         "deleteUser": "supprimer un utilisateur",
         "deleteWorkspace": "supprimer un espace de travail",
         "docAccess": "lister des utilisateurs ayant accès au document",

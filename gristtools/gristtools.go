@@ -41,6 +41,7 @@ func Help() {
 	commands := []command{
 		{"config", common.T("help.config")},
 		{"delete doc <id>", common.T("help.deleteDoc")},
+		{"delete org <id> <name>", common.T("help.deleteOrg")},
 		{"delete user <id>", common.T("help.deleteUser")},
 		{"delete workspace <id>", common.T("help.deleteWorkspace")},
 		{"[-o=json/table] get doc <id> access", common.T("help.docAccess")},
@@ -798,6 +799,13 @@ func DisplayUserMatrix() {
 			}
 			table.Render()
 		}
+	}
+}
+
+// Delete an organization
+func DeleteOrg(orgId int, orgName string) {
+	if common.Confirm(fmt.Sprintf("Do you really want to delete workspace %d : %s ?", orgId, orgName)) {
+		gristapi.DeleteOrg(orgId, orgName)
 	}
 }
 
