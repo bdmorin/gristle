@@ -56,6 +56,9 @@ func main() {
 							case "access":
 								orgId := args[2]
 								gristtools.DisplayOrgAccess(orgId)
+							case "usage":
+								orgId := args[2]
+								gristtools.GetOrgUsageSummary(orgId)
 							default:
 								gristtools.Help()
 							}

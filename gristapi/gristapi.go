@@ -93,6 +93,24 @@ type UserRole struct {
 	Role  string
 }
 
+// Grist's organization usage
+type OrgUsage struct {
+	CountsByDataLimitStatus DataLimitStatus `json:"CountsByDataLimitStatus"`
+	Attachments             Attachment      `json:"attachments"`
+}
+
+// Grist's data limit status
+type DataLimitStatus struct {
+	ApproachingLimit int
+	GracePeriod      int
+	DeleteOnly       int
+}
+
+// Grist's attachment
+type Attachment struct {
+	TotalBytes int `json:"totalBytes"`
+}
+
 // Apply config and return the config file path
 func GetConfig() string {
 	home := os.Getenv("HOME")
@@ -485,4 +503,12 @@ func GetTableContent(docId string, tableName string) {
 	url := fmt.Sprintf("docs/%s/download/csv?tableId=%s", docId, tableName)
 	csvFile, _ := httpGet(url, "")
 	fmt.Println(csvFile)
+}
+
+// Retrieves information on a specific organization
+func GetOrgUsageSummary(orgId string) OrgUsage {
+	usage := OrgUsage{}
+	response, _ := httpGet("orgs/"+orgId+"/usage", "")
+	json.Unmarshal([]byte(response), &usage)
+	return usage
 }

@@ -51,6 +51,8 @@ func Help() {
 		{"get doc <id> table <tableName>", common.T("help.docExportCsv")},
 		{"[-o=json/table] get doc <id>", common.T("help.docDesc")},
 		{"[-o=json/table] get org <id>", common.T("help.orgDesc")},
+		{"[-o=json/table] get org <id> access", common.T("help.orgAccess")},
+		{"[-o=json/table] get org <id> usage", common.T("help.orgUsage")},
 		{"[-o=json/table] get org", common.T("help.orgList")},
 		{"[-o=json/table] get users", common.T("help.userList")},
 		{"[-o=json/table] get workspace <id> access", common.T("help.workspaceAccess")},
@@ -880,14 +882,31 @@ func MoveAllDocs(fromWorkspaceId int, toWorkspaceId int) {
 
 }
 
-// Move all documents from a workspace to another
+// Create a new organization
 func CreateOrg(orgName string, orgDomain string) {
 	org := gristapi.GetOrg(orgDomain)
 
 	if org.Id != 0 {
 		fmt.Printf("❗️ Organization %s already exists ❗️\n", org.Name)
 	} else {
-		gristapi.CreateOrg(orgName, orgDomain)
+		orgId := gristapi.CreateOrg(orgName, orgDomain)
+		fmt.Printf("Organization %d : %s has been created\n", orgId, orgName)
 	}
 
+}
+
+// Retrieve organization's usage
+func GetOrgUsageSummary(orgId string) {
+	org := gristapi.GetOrg(orgId)
+
+	if org.Id == 0 {
+		fmt.Printf("❗️ Organization %s not found ❗️\n", orgId)
+	} else {
+		usage := gristapi.GetOrgUsageSummary(orgId)
+		jsonUsage, err := json.MarshalIndent(usage, "", "  ")
+		if err != nil {
+			fmt.Println("ERROR :", err)
+		}
+		fmt.Println(string(jsonUsage))
+	}
 }
