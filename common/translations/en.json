@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "GRIST : API querying"
+    "title": "GRISTLE : Wrangling Your Grist Data"
   },
   "col": {
     "columns": "Columns",

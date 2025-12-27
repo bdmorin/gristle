@@ -29,16 +29,16 @@ jobs:
           mkdir -p build/windows-amd64
           mkdir -p build/mac-amd64
           mkdir -p build/mac-arm64
-          GOOS=linux   GOARCH=amd64 go build -o build/linux-amd64/gristctl -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
-          GOOS=darwin  GOARCH=amd64 go build -o build/mac-amd64/gristctl -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
-          GOOS=darwin  GOARCH=arm64 go build -o build/mac-arm64/gristctl -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
-          GOOS=windows GOARCH=amd64 go build -o build/windows-amd64/gristctl.exe -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
+          GOOS=linux   GOARCH=amd64 go build -o build/linux-amd64/gristle -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
+          GOOS=darwin  GOARCH=amd64 go build -o build/mac-amd64/gristle -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
+          GOOS=darwin  GOARCH=arm64 go build -o build/mac-arm64/gristle -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
+          GOOS=windows GOARCH=amd64 go build -o build/windows-amd64/gristle.exe -ldflags="-X main.version=${GITHUB_REF#refs/tags/}" .
           zip -r exec_files.zip build/*
           tar -cv build/* | gzip > exec_files.tar.gz
       - name: Archive exec file
         uses: actions/upload-artifact@v4
         with:
-          name: gristctl
+          name: gristle
           path: build/
       - name: Create Release
         uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87 # v1.15.0

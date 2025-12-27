@@ -4,26 +4,26 @@ SPDX-FileCopyrightText: 2024 Ville Eurométropole Strasbourg
 SPDX-License-Identifier: MIT
 -->
 
-# Contributing to Gristctl
+# Contributing to Gristle
 
-Thank you for your interest in contributing to **gristctl**! We welcome all contributions, whether they involve reporting bugs, suggesting new features, improving documentation, or submitting code.
+Thank you for your interest in contributing to **Gristle**! We welcome all contributions, whether they involve reporting bugs, suggesting new features, improving documentation, or submitting code.
 
 ## Before You Begin
 
 1. **Read the documentation**: Familiarize yourself with the purpose and functionality of the project by reviewing the [README.md](./README.md).
-2. **Check existing issues**: Before creating a new issue or suggesting a feature, browse through the [open issues](https://github.com/Ville-Eurometropole-Strasbourg/gristctl/issues) to avoid duplicates.
+2. **Check existing issues**: Before creating a new issue or suggesting a feature, browse through the open issues to avoid duplicates.
 3. **Follow the code of conduct**: Please ensure you adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## How to Contribute?
 
 ### 1. Reporting a Bug
 
-1. Go to the [Issues tab](https://github.com/Ville-Eurometropole-Strasbourg/gristctl/issues).
+1. Go to the Issues tab.
 2. Create a new issue using the "Bug Report" template.
 3. Provide as much detail as possible:
    - Steps to reproduce the problem
    - Expected vs. actual results
-   - Environment (OS, gristctl version, etc.)
+   - Environment (OS, gristle version, etc.)
    - Relevant logs or error messages
 
 ### 2. Suggesting an Improvement or New Feature
@@ -39,9 +39,9 @@ Thank you for your interest in contributing to **gristctl**! We welcome all cont
 - Create a fork of the main repository on your GitHub account.
 - Clone your fork locally:
   ```bash
-  git clone https://github.com/<your-username>/gristctl.git
-  cd gristctl
-  ````
+  git clone https://github.com/<your-username>/gristle.git
+  cd gristle
+  ```
 
 #### Step 2: Create a Branch
 
@@ -83,11 +83,11 @@ Submit your documentation improvements through a Pull Request as explained above
 ## Best Practices
 
 Follow coding standards: Ensure your code is clean, well-documented, and consistent with the project's style.
-Write clear commit messages: Summarize what you’ve done concisely and accurately.
-Test your changes: Make sure your contribution doesn’t introduce regressions.
+Write clear commit messages: Summarize what you've done concisely and accurately.
+Test your changes: Make sure your contribution doesn't introduce regressions.
 
 ## Need Help?
 
-If you have any questions, feel free to open an issue or reach out to the maintainers. We’re here to help!
+If you have any questions, feel free to open an issue or reach out to the maintainers. We're here to help!
 
-Thank you for contributing to gristctl!
+Thank you for contributing to Gristle!

@@ -1,422 +1,206 @@
-<!--
-SPDX-FileCopyrightText: 2024 Ville Eurométropole Strasbourg
+# Gristle - The Meaty CLI for Grist
 
-SPDX-License-Identifier: MIT
--->
+```
+   _____ _____  _____  _____ _______ _      ______
+  / ____|  __ \|_   _|/ ____|__   __| |    |  ____|
+ | |  __| |__) | | | | (___    | |  | |    | |__
+ | | |_ |  _  /  | |  \___ \   | |  | |    |  __|
+ | |__| | | \ \ _| |_ ____) |  | |  | |____| |____
+  \_____|_|  \_\_____|_____/   |_|  |______|______|
 
-# GristCTL : Command Line Interface (CLI) for Grist
+      The tough, chewy bits that get the job done.
+```
 
-[![img](https://img.shields.io/badge/code.gouv.fr-contributif-blue.svg)](https://code.gouv.fr/documentation/#quels-degres-douverture-pour-les-codes-sources)
-[![REUSE status](https://api.reuse.software/badge/github.com/bdmorin/gristle)](https://api.reuse.software/info/github.com/bdmorin/gristle)
+> *Fork of the excellent [grist-ctl](https://github.com/Ville-Eurometropole-Strasbourg/grist-ctl) by Ville Eurometropole Strasbourg*
 
-**[Grist](https://www.getgrist.com/)** is a versatile platform for creating and managing custom data applications. It blends the capabilities of a relational database with the adaptability of a spreadsheet, empowering users to design advanced data workflows, collaborate in real-time, and automate tasks—all without requiring code.
+**[Grist](https://www.getgrist.com/)** is a versatile platform for creating and managing custom data applications. It blends the capabilities of a relational database with the adaptability of a spreadsheet, empowering users to design advanced data workflows, collaborate in real-time, and automate tasks--all without requiring code.
 
-![GRIST logo](gristcli-logo.png)
-
-**gristctl** is a command-line utility designed for interacting with Grist. It allows users to automate and manage tasks related to Grist documents, including creating, updating, listing, deleting documents, and retrieving data from them.
+**Gristle** is the tough, no-nonsense command-line utility for wrangling your Grist data. Like the chewy bits of a good steak, it's not glamorous, but it gets the job done. Automate document management, export data, manage users, and more--all from your terminal.
 
 <div align="center">
 
-[Installation](#installation) •
-[Configuration](#configuration) •
-[Usage](#usage)
+[Installation](#installation) |
+[Configuration](#configuration) |
+[Usage](#usage) |
+[Interactive TUI](#interactive-tui) |
+[MCP Server](#mcp-server)
 
 </div>
 
+## Features
+
+- **Interactive TUI** - Navigate your Grist orgs, workspaces, and docs with a beautiful terminal interface
+- **MCP Server** - AI assistant integration via Model Context Protocol
+- **CLI Commands** - Script everything for automation
+- **Multiple Output Formats** - Table, JSON, or CSV output
+
 ## Installation
 
-To get started with `gristctl`, follow the steps below to install the tool on your machine.
+### Pre-built Binaries
 
-### Installing from exec files
+Grab the latest release for your platform:
 
-Download exec files from [release](https://github.com/bdmorin/gristle/releases). Extract the archive and copy the `gristctl` file corresponding to your runtime environment into a directory in your PATH.
+```bash
+# Linux
+curl -L https://github.com/bdmorin/gristle/releases/latest/download/gristle-linux-amd64 -o gristle
+chmod +x gristle
+sudo mv gristle /usr/local/bin/
 
-<details>
-   <summary>Windows</summary>
+# macOS (Apple Silicon)
+curl -L https://github.com/bdmorin/gristle/releases/latest/download/gristle-darwin-arm64 -o gristle
+chmod +x gristle
+sudo mv gristle /usr/local/bin/
 
-   > That means you can either:
-   >
-   > - copy the `gristctl.exe` into a directory that is in your PATH
-   > - add the directory that contains `gristctl.exe` in your PATH environment variable
+# Windows - download gristle.exe and add to PATH
+```
 
-</details>
+### Building from Source
 
-### Installing from Source
+```bash
+# Clone it
+git clone https://github.com/bdmorin/gristle.git
+cd gristle
 
-#### Prerequisites
+# Build it
+go build -o gristle .
 
-- If you want to build from sources, ensure you have a [working installation of Go](https://golang.org/doc/install) (version 1.23 or later).
-- You should also have access to a Grist instance.
+# Run it
+./gristle
+```
 
-#### Build
-
-To install `gristctl` from source:
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/bdmorin/gristle.git
-   ```
-
-2. Open a terminal (or command prompt on Windows) and navigate to the `gristle` directory:
-
-   ```bash
-   cd gristle
-   ```
-
-3. Build the tool:
-
-   ```bash
-   go build
-   ```
-
-    - Note: If dependencies don't install automatically you may need to install them manually (ex: `go get gristctl/gristapi`) then build again.
-
-4. Once the build is completed, you can move the binary (`gristctl.exe`) to your `PATH`.
-
-<details>
-   <summary>Windows</summary>
-
-   > That means you can either:
-   >
-   > - copy the `gristctl.exe` into a directory that is in your PATH
-   > - add the directory that contains `gristctl.exe` in your PATH environment variable
-
-</details>
-
-<details>
-   <summary>Linux/macOS</summary>
-
-   > Example:
-   > ```bash
-   > sudo mv gristctl /usr/local/bin/
-   > ```
-
-</details>
+**Requirements:** Go 1.23+
 
 ## Configuration
 
-You will need your Grist instance URL and your Grist user token/API key (to find it you can follow the [official documentation](https://support.getgrist.com/rest-api/)).
+Gristle needs your Grist server URL and API token. Get your token from your Grist profile settings.
 
-### Interactively
-
-You can configure `gristctl` with the following command :
+### Interactive Setup
 
 ```bash
-$ gristctl config
-----------------------------------------------------------------------------------
-Setting the url and token for access to the grist server (/Users/me/.gristctl)
-----------------------------------------------------------------------------------
-Actual URL : https://wpgrist.cus.fr
-Token : ✅
-Would you like to configure (Y/N) ?
-y
-Grist server URL (https://......... without '/' in the end): https://grist.numerique.gouv.fr
-User token : secrettoken
-Url : https://grist.numerique.gouv.fr --- Token: secrettoken
-Is it OK (Y/N) ? y
-Config saved in /Users/me/.gristctl
+$ gristle config
+---------------------------------------------------------------------------
+Setting the url and token for access to the grist server (/Users/you/.gristle)
+---------------------------------------------------------------------------
+Actual URL : (none)
+Token : (none)
+Would you like to configure (Y/N) ? y
+Grist server URL: https://docs.getgrist.com
+User token: your-secret-token-here
+Config saved in /Users/you/.gristle
 ```
 
-### Manually
+### Manual Setup
 
-Create a `.gristctl` file in your home directory containing the following information:
+Create `~/.gristle`:
 
 ```ini
-GRIST_TOKEN="user session token"
-GRIST_URL="https://<GRIST server URL, without /api>"
+GRIST_URL="https://docs.getgrist.com"
+GRIST_TOKEN="your-secret-token-here"
 ```
 
 ## Usage
 
-Command structure :
+### Interactive TUI
+
+Just run `gristle` with no arguments for the interactive terminal UI:
 
 ```bash
-gristctl [<options>] <command>
-````
-
-Example :
-
-```bash
-gristctl -o=json get org
+$ gristle
 ```
 
-### List of options
+Navigate with arrow keys, Enter to select, Esc to go back, q to quit.
 
-| Option | Usage                                                                |
-| ------ | -------------------------------------------------------------------- |
-| `-o`   | Output type. Can take the values `table` (default), `json` or `csv`. |
+### MCP Server
 
-### List of commands
-
-| Command                                       | Usage                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------- |
-| `config`                                      | configure url & token of Grist server                               |
-| `delete doc <id>`                             | delete a document                                                   |
-| `delete user <id>`                            | delete a user                                                       |
-| `delete workspace <id>`                       | delete a workspace                                                  |
-| `[-o=json/table] get doc <id>`                | document details                                                    |
-| `[-o=json/table] get doc <id> access`         | list of document access rights                                      |
-| `get doc <id> excel`                          | export document as `<workspace name>_<doc name>.xlsx` Excel file    |
-| `get doc <id> grist`                          | export document as `<workspace name>_<doc name>.grist` Grist file   |
-| `get doc <id> table <tableName>`              | export content of a document's table as a CSV file (xlsx) in stdout |
-| `[-o=json/table] get org <id>`                | organization details                                                |
-| `[-o=json/table] get org`                     | organization list                                                   |
-| `[-o=json/table] get users`                   | displays all user rights                                            |
-| `[-o=json/table] get workspace <id> access`   | list of workspace access rights                                     |
-| `[-o=json/table] get workspace <id>`          | workspace details                                                   |
-| `import users`                                | imports users from standard input                                   |
-| `purge doc <id> [<number of states to keep>]` | purges document history (retains last 3 operations by default)      |
-| `version`                                     | displays the version of the program                                 |
-
-### List Grist organization
-
-To list all available Grist organization:
+Start the MCP server for AI assistant integration:
 
 ```bash
-$ gristctl get org
+$ gristle mcp
+# or
+$ gristle serve
+```
+
+### CLI Commands
+
+```bash
+gristle [options] <command>
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `-o`   | Output format: `table` (default), `json`, or `csv` |
+| `-json`| Shorthand for `-o=json` |
+
+#### Commands
+
+| Command | Description |
+|---------|-------------|
+| `config` | Configure Grist server URL & token |
+| `version` | Show version |
+| **Organizations** | |
+| `get org` | List all organizations |
+| `get org <id>` | Organization details |
+| `get org <id> access` | List org access rights |
+| `get org <id> usage` | Show org usage stats |
+| `create org <name> <domain>` | Create an organization |
+| `delete org <id> <name>` | Delete an organization |
+| **Workspaces** | |
+| `get workspace <id>` | Workspace details |
+| `get workspace <id> access` | List workspace access rights |
+| `delete workspace <id>` | Delete a workspace |
+| **Documents** | |
+| `get doc <id>` | Document details |
+| `get doc <id> access` | List document access rights |
+| `get doc <id> table <name>` | Export table as CSV |
+| `get doc <id> excel` | Export as Excel |
+| `get doc <id> grist` | Export as Grist (sqlite) |
+| `move doc <id> workspace <wsid>` | Move doc to workspace |
+| `move docs from <wsid> to <wsid>` | Move all docs between workspaces |
+| `purge doc <id> [keep]` | Purge doc history (default: keep 3) |
+| `delete doc <id>` | Delete a document |
+| **Users** | |
+| `get users` | List all users and roles |
+| `import users` | Import users from stdin |
+| `delete user <id>` | Delete a user |
+
+### Examples
+
+```bash
+# List all orgs
+$ gristle get org
 +----+----------+
 | ID |   NAME   |
 +----+----------+
 |  2 | Personal |
-|  3 | ems      |
+|  3 | Work     |
 +----+----------+
+
+# Get org details as JSON
+$ gristle -o=json get org 3
+
+# Export a document to Excel
+$ gristle get doc abc123 excel
+
+# Move all docs from one workspace to another
+$ gristle move docs from 100 to 200
 ```
-
-To export as JSON:
-
-```bash
-gristctl -o=json get org
-```
-
-```json
-[
-   {
-      "id": 3,
-    "name": "ems",
-    "domain": "ems",
-    "createdAt": "2024-11-12T16:50:06.512Z"
-  },
-  {
-     "id": 2,
-    "name": "Personal",
-    "domain": "docs-5",
-    "createdAt": "2024-11-12T16:50:06.494Z"
-  }
-]
-```
-
-### Displays information about an organization
-
-Example : get organization n°3 information, including the list of his workspaces :
-
-```bash
-$ gristctl get org 3
-╔════════════════════════╗
-║ Organization n°3 : ems ║
-╚════════════════════════╝
-Contains 30 workspaces :
-+--------------+--------------------------------+-----+--------------+
-| WORKSPACE ID |         WORKSPACE NAME         | DOC | DIRECT USERS |
-+--------------+--------------------------------+-----+--------------+
-|          350 | Direction-DSI                  |   4 |          285 |
-|          341 | Service-INF                    |   2 |          284 |
-|          649 | Service-PSS                    |   4 |            3 |
-...
-+--------------+--------------------------------+-----+--------------+
-```
-
-To export as JSON:
-
-```bash
-gristctl -o=json get org 3
-```
-
-```json
-{
-   "id": 3,
-  "name": "ems",
-  "nbWs": 32,
-  "ws": [
-     {
-        "id": 676,
-      "name": "Cellule Stratégie Logiciels Libres",
-      "nbDoc": 9,
-      "nbUser": 2
-    },
-    ...
-    {
-       "id": 340,
-      "name": "Service-SIG",
-      "nbDoc": 0,
-      "nbUser": 2
-    }
-  ]
-}
-```
-
-### Describe a workspace
-
-To fetch data from a Grist workspace with ID 676, including the list of his documents:
-
-```bash
-$ gristctl get workspace 676
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║ Organization n°3 : ems | workspace n°676 : Cellule Stratégie Logiciels Libres ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-Contains 5 documents :
-+------------------------+------------+--------+
-|           ID           |    NAME    | PINNED |
-+------------------------+------------+--------+
-| b8RzZzAJ4JgPWN1HKFTb48 | Ressources | 📌     |
-...
-+------------------------+------------+--------+
-```
-
-To export as JSON:
-
-```bash
-gristctl -o=json get workspace 676
-```
-
-```json
-{
-   "orgId": 3,
-  "orgName": "ems",
-  "id": 676,
-  "name": "Cellule Stratégie Logiciels Libres",
-  "nbDocs": 9,
-  "docs": [
-     {
-        "id": "wSc4ZgUr28gVPSXwf2JMpa",
-      "name": "Activités SLL",
-      "isPinned": false
-    },
-    ...
-    {
-       "id": "b8RzZzAJ4JgPWN1HKFTb48",
-      "name": "Ressources",
-      "isPinned": true
-    }
-  ]
-}
-```
-
-### View workspace access rights
-
-```bash
-$ gristctl get workspace 676 access
-╔══════════════════════════════════════════════════════╗
-║ Workspace n°676 : Cellule Stratégie Logiciels Libres ║
-╚══════════════════════════════════════════════════════╝
-Full inheritance of rights from the next level up
-
-Accessible to the following users :
-+-----+---------------+-----------------------------+------------------+---------------+
-| ID  |      NOM      |            EMAIL            | INHERITED ACCESS | DIRECT ACCESS |
-+-----+---------------+-----------------------------+------------------+---------------+
-|   5 | xxxx xxxxxxx  | xxxx.xxxxxxx@strasbourg.eu  | owners           | guests        |
-| 237 | xxxxxxx xxxxx | xxxxxxx.xxxxx@strasbourg.eu | owners           | owners        |
-+-----+---------------+-----------------------------+------------------+---------------+
-2 users
-```
-
-To export as JSON:
-
-```bash
-gristctl -o=json get workspace 676 access
-```
-
-```json
-{
-   "workspaceId": 676,
-   "workspaceName": "Cellule Stratégie Logiciels Libres",
-   "orgId": 3,
-   "orgName": "ems",
-   "nbUsers": 2,
-   "maxInheritedRole": "owners",
-   "users": [
-      {
-         "id": 237,
-         "email": "xxxx.xxxxxx@strasbourg.eu",
-         "name": "Xxxxx XXXXXX",
-         "parentAccess": "owners",
-         "access": "owners"
-      },
-      {
-         "id": 5,
-         "email": "xxxx.xxxxxx@strasbourg.eu",
-         "name": "Xxxxx XXXXXX",
-         "parentAccess": "owners",
-         "access": "guests"
-      }
-   ]
-}
-```
-
-### Delete a workspace
-
-To delete a Grist workspace with ID 676:
-
-```bash
-gristctl delete workspace 676
-```
-
-### Import users from an ActiveDirectory directory
-
-Extract the list of members of AD groups GA_GRIST_PU and GA_GRIST_PA :
-
-```powershell
-foreach ($grp in ('a', 'u')) {
-    get-adgroupmember ga_grist_p$grp | get-aduser -properties mail, extensionAttribute6, extensionAttribute15 |select-object mail, extensionAttribute6, extensionAttribute15 | export-csv -Path ga_grist_p$grp.csv -NoTypeInformation -Encoding:UTF8
-}
-```
-
-<details>
-   <summary>Using this files with bash (Unix)</summary>
-
-   ```bash
-   dos2unix ga_grist_pu.csv
-   dos2unix ga_grist_pa.csv
-   cat ga_grist_pu.csv | awk -F',' 'NR>1 {gsub(/"/, "", $0); print tolower($1)";3;"$2" : Commun;viewers"}' | gristctl import users
-   cat ga_grist_pu.csv | awk -F',' 'NR>1 {gsub(/"/, "", $0); print tolower($1)";3;"$2"/"$3" : Commun;viewers"}' | gristctl import users
-   cat ga_grist_pa.csv | awk -F',' 'NR>1 {gsub(/"/, "", $0); print tolower($1)";3;"$2" : Commun;editors"}' | gristctl import users
-   cat ga_grist_pa.csv | awk -F',' 'NR>1 {gsub(/"/, "", $0); print tolower($1)";3;"$2"/"$3" : Commun;editors"}' | gristctl import users
-   ```
-
-</details>
-
-<details>
-   <summary>Using this files with PowerShell (Windows)</summary>
-
-   ```powershell
-   ( Import-Csv "ga_grist_pu.csv" -Header @("email", "direction", "service") | Select-Object -Skip 1 | ForEach-Object { "$($_.email.ToLower());3;$($_.direction)/$($_.service) : Commun;viewers" }) | .\gristctl.exe import users
-   ( Import-Csv "ga_grist_pu.csv" -Header @("email", "direction", "service") | Select-Object -Skip 1 | ForEach-Object { "$($_.email.ToLower());3;$($_.direction) : Commun;viewers" }) | .\gristctl.exe import users
-   ( Import-Csv "ga_grist_pa.csv" -Header @("email", "direction", "service") | Select-Object -Skip 1 | ForEach-Object { "$($_.email.ToLower());3;$($_.direction)/$($_.service) : Commun;editors" }) | .\gristctl.exe import users
-   ( Import-Csv "ga_grist_pa.csv" -Header @("email", "direction", "service") | Select-Object -Skip 1 | ForEach-Object { "$($_.email.ToLower());3;$($_.direction) : Commun;editors" }) | .\gristctl.exe import users
-   ```
-
-</details>
 
 ## Contributing
 
-We welcome contributions to gristctl. If you find a bug or want to improve the tool, feel free to open an issue or submit a pull request.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-### Steps for contributing
+## Credits
 
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Commit your changes.
-4. Push your branch and create a pull request.
+Gristle is a fork of [grist-ctl](https://github.com/Ville-Eurometropole-Strasbourg/grist-ctl) by [Ville Eurometropole Strasbourg](https://github.com/Ville-Eurometropole-Strasbourg). Much respect to the original authors for their excellent work.
 
-Please ensure that your code adheres to the project's coding style and includes tests where applicable.
+**🇫🇷 Merci beaucoup! 🇫🇷**
 
 ## License
 
-This project is licensed under the MIT License - see [LICENCE](LICENCE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-This project includes third-party libraries, which are licensed under their own respective Open Source licenses. SPDX-License-Identifier headers are used to show which license is applicable. The concerning license files can be found in the LICENSES directory.
+---
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=bdmorin/gristle&type=Date)](https://www.star-history.com/#bdmorin/gristle&Date)
+*Remember: Like a good steak, your data deserves proper handling. Gristle's got you covered.*

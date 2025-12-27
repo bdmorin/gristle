@@ -5,7 +5,7 @@
 main
 go.sum
 .env
-gristctl
-gristctl.exe
+gristle
+gristle.exe
 .DS_Store
 .gitlab-ci.yml
