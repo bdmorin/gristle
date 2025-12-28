@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ville-Eurometropole-Strasbourg/grist-ctl/gristapi"
+	"github.com/bdmorin/gristle/gristapi"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 # GristCTL : Command Line Interface (CLI) for Grist
 
 [![img](https://img.shields.io/badge/code.gouv.fr-contributif-blue.svg)](https://code.gouv.fr/documentation/#quels-degres-douverture-pour-les-codes-sources)
-[![REUSE status](https://api.reuse.software/badge/github.com/Ville-Eurometropole-Strasbourg/grist-ctl)](https://api.reuse.software/info/github.com/Ville-Eurometropole-Strasbourg/grist-ctl)
+[![REUSE status](https://api.reuse.software/badge/github.com/bdmorin/gristle)](https://api.reuse.software/info/github.com/bdmorin/gristle)
 
 **[Grist](https://www.getgrist.com/)** is a versatile platform for creating and managing custom data applications. It blends the capabilities of a relational database with the adaptability of a spreadsheet, empowering users to design advanced data workflows, collaborate in real-time, and automate tasks—all without requiring code.
 
@@ -29,7 +29,7 @@ To get started with `gristctl`, follow the steps below to install the tool on yo
 
 ### Installing from exec files
 
-Download exec files from [release](https://github.com/Ville-Eurometropole-Strasbourg/gristctl/releases). Extract the archive and copy the `gristctl` file corresponding to your runtime environment into a directory in your PATH.
+Download exec files from [release](https://github.com/bdmorin/gristle/releases). Extract the archive and copy the `gristctl` file corresponding to your runtime environment into a directory in your PATH.
 
 <details>
    <summary>Windows</summary>
@@ -55,13 +55,13 @@ To install `gristctl` from source:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Ville-Eurometropole-Strasbourg/gristctl.git
+   git clone https://github.com/bdmorin/gristle.git
    ```
 
-2. Open a terminal (or command prompt on Windows) and navigate to the `gristctl` directory:
+2. Open a terminal (or command prompt on Windows) and navigate to the `gristle` directory:
 
    ```bash
-   cd gristctl
+   cd gristle
    ```
 
 3. Build the tool:
@@ -419,4 +419,4 @@ This project includes third-party libraries, which are licensed under their own 
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ville-Eurometropole-Strasbourg/grist-ctl&type=Date)](https://www.star-history.com/#Ville-Eurometropole-Strasbourg/grist-ctl&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=bdmorin/gristle&type=Date)](https://www.star-history.com/#bdmorin/gristle&Date)
