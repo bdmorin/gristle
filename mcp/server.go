@@ -25,6 +25,7 @@ func NewServer() *server.MCPServer {
 	registerGetDoc(s)
 	registerExportDoc(s)
 	registerGetDocTables(s)
+	registerDeleteRecords(s)
 
 	return s
 }
@@ -305,5 +306,53 @@ func registerGetDocTables(s *server.MCPServer) {
 		}
 
 		return mcp.NewToolResultText(string(jsonBytes)), nil
+	})
+}
+
+// registerDeleteRecords adds the delete_records tool
+func registerDeleteRecords(s *server.MCPServer) {
+	tool := mcp.NewTool("delete_records",
+		mcp.WithDescription("Delete records from a table by their row IDs"),
+		mcp.WithString("doc_id",
+			mcp.Required(),
+			mcp.Description("The document ID"),
+		),
+		mcp.WithString("table_id",
+			mcp.Required(),
+			mcp.Description("The table ID"),
+		),
+		mcp.WithArray("row_ids",
+			mcp.Required(),
+			mcp.Description("Array of row IDs to delete"),
+		),
+	)
+
+	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		docID, err := req.RequireString("doc_id")
+		if err != nil {
+			return mcp.NewToolResultError("doc_id is required"), nil
+		}
+
+		tableID, err := req.RequireString("table_id")
+		if err != nil {
+			return mcp.NewToolResultError("table_id is required"), nil
+		}
+
+		rowIDs, err := req.RequireIntSlice("row_ids")
+		if err != nil {
+			return mcp.NewToolResultError("row_ids must be an array of integers"), nil
+		}
+
+		if len(rowIDs) == 0 {
+			return mcp.NewToolResultError("row_ids cannot be empty"), nil
+		}
+
+		_, status := gristapi.DeleteRecords(docID, tableID, rowIDs)
+
+		if status == 200 {
+			return mcp.NewToolResultText(fmt.Sprintf("Successfully deleted %d record(s)", len(rowIDs))), nil
+		}
+
+		return mcp.NewToolResultError(fmt.Sprintf("Failed to delete records, status code: %d", status)), nil
 	})
 }
