@@ -210,7 +210,6 @@ type GetAttachmentsOptions struct {
 	Limit  int                      // Maximum attachments to return
 }
 
-
 // Apply config and return the config file path
 func GetConfig() string {
 	home := os.Getenv("HOME")
