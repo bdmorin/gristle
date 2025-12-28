@@ -49,6 +49,7 @@ func Help() {
 		{"get doc <id> excel", common.T("help.docExportExcel")},
 		{"get doc <id> grist", common.T("help.docExportGrist")},
 		{"get doc <id> table <tableName>", common.T("help.docExportCsv")},
+		{"[-o=json/table] get doc <id> webhooks", "list webhooks for document"},
 		{"[-o=json/table] get doc <id>", common.T("help.docDesc")},
 		{"[-o=json/table] get org <id>", common.T("help.orgDesc")},
 		{"[-o=json/table] get org <id> access", common.T("help.orgAccess")},
@@ -729,6 +730,99 @@ func DisplayDocAccess(docId string) {
 				}
 				table.Render()
 			}
+		}
+	}
+}
+
+// Displays webhooks for a document
+func DisplayDocWebhooks(docId string) {
+	type WebhookInfo struct {
+		Id             string   `json:"id"`
+		Name           string   `json:"name"`
+		Memo           string   `json:"memo"`
+		Url            string   `json:"url"`
+		Enabled        bool     `json:"enabled"`
+		EventTypes     []string `json:"eventTypes"`
+		TableId        string   `json:"tableId"`
+		Status         string   `json:"status"`
+		NumWaiting     int      `json:"numWaiting"`
+		LastHttpStatus *int     `json:"lastHttpStatus,omitempty"`
+	}
+
+	type DocWebhooks struct {
+		DocId       string        `json:"docId"`
+		DocName     string        `json:"docName"`
+		NumWebhooks int           `json:"numWebhooks"`
+		Webhooks    []WebhookInfo `json:"webhooks"`
+	}
+
+	// Getting the document
+	doc := gristapi.GetDoc(docId)
+	if doc.Name == "" {
+		fmt.Printf("❗️ Document %s not found ❗️\n", docId)
+		return
+	}
+
+	// Getting the webhooks
+	webhooks := gristapi.GetDocWebhooks(docId)
+
+	// Build the display structure
+	var webhookInfos []WebhookInfo
+	for _, wh := range webhooks {
+		info := WebhookInfo{
+			Id:             wh.Id,
+			Name:           wh.Fields.Name,
+			Memo:           wh.Fields.Memo,
+			Url:            wh.Fields.Url,
+			Enabled:        wh.Fields.Enabled,
+			EventTypes:     wh.Fields.EventTypes,
+			TableId:        wh.Fields.TableId,
+			Status:         wh.Usage.Status,
+			NumWaiting:     wh.Usage.NumWaiting,
+			LastHttpStatus: wh.Usage.LastHttpStatus,
+		}
+		webhookInfos = append(webhookInfos, info)
+	}
+
+	docWebhooks := DocWebhooks{
+		DocId:       doc.Id,
+		DocName:     doc.Name,
+		NumWebhooks: len(webhooks),
+		Webhooks:    webhookInfos,
+	}
+
+	switch output {
+	case "json":
+		jsonData, err := json.MarshalIndent(docWebhooks, "", "   ")
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(string(jsonData))
+	case "table":
+		common.DisplayTitle(fmt.Sprintf("Document \"%s\" (%s)", doc.Name, doc.Id))
+		if len(webhooks) == 0 {
+			fmt.Println("No webhooks configured for this document")
+		} else {
+			fmt.Printf("Contains %d webhook(s):\n", len(webhooks))
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"ID", "Name", "Table", "Events", "Enabled", "Status", "Waiting"})
+			for _, wh := range webhookInfos {
+				enabled := "❌"
+				if wh.Enabled {
+					enabled = "✅"
+				}
+				events := strings.Join(wh.EventTypes, ", ")
+				table.Append([]string{
+					wh.Id,
+					wh.Name,
+					wh.TableId,
+					events,
+					enabled,
+					wh.Status,
+					strconv.Itoa(wh.NumWaiting),
+				})
+			}
+			table.Render()
 		}
 	}
 }

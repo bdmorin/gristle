@@ -113,8 +113,10 @@ func handleGet(args []string) {
 				gristtools.ExportDocGrist(docId)
 			case "excel":
 				gristtools.ExportDocExcel(docId)
+			case "webhooks":
+				gristtools.DisplayDocWebhooks(docId)
 			default:
-				fmt.Println("Options: access, grist, excel")
+				fmt.Println("Options: access, grist, excel, webhooks")
 			}
 		case 5:
 			if args[3] == "table" {
