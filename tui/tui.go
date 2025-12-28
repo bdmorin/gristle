@@ -21,6 +21,9 @@ const (
 	ViewDocActions
 	ViewTables
 	ViewTableData
+	ViewTableActions
+	ViewDocAccess
+	ViewConfirmDelete
 )
 
 // DocAction represents an action that can be performed on a document
@@ -28,7 +31,6 @@ type DocAction int
 
 const (
 	ActionViewTables DocAction = iota
-	ActionExportCSV
 	ActionExportExcel
 	ActionExportGrist
 	ActionViewAccess
@@ -37,11 +39,23 @@ const (
 
 var docActionLabels = []string{
 	"View Tables",
-	"Export as CSV",
 	"Export as Excel (.xlsx)",
 	"Export as Grist (.grist)",
 	"View Access",
 	"Delete Document",
+}
+
+// TableAction represents an action that can be performed on a table
+type TableAction int
+
+const (
+	TableActionViewData TableAction = iota
+	TableActionExportCSV
+)
+
+var tableActionLabels = []string{
+	"View Data",
+	"Export as CSV",
 }
 
 // Model is the main application state
@@ -55,6 +69,14 @@ type Model struct {
 	workspaces []gristapi.Workspace
 	docs       []gristapi.Doc
 	tables     []gristapi.Table
+
+	// Table data
+	tableColumns []gristapi.TableColumn
+	tableData    map[string][]interface{} // column ID -> values
+	tableRowIDs  []uint
+
+	// Access data
+	docAccess gristapi.EntityAccess
 
 	// Selection context
 	selectedOrg       *gristapi.Org
@@ -73,6 +95,10 @@ type Model struct {
 	err     error
 	message string // success/info message
 
+	// Scroll state for table data
+	scrollX int
+	scrollY int
+
 	// Keybindings
 	keys KeyMap
 
@@ -88,6 +114,14 @@ type docsLoadedMsg struct {
 	workspace gristapi.Workspace
 }
 type tablesLoadedMsg []gristapi.Table
+type tableDataLoadedMsg struct {
+	columns []gristapi.TableColumn
+	data    map[string][]interface{}
+	rowIDs  []uint
+}
+type docAccessLoadedMsg gristapi.EntityAccess
+type docDeletedMsg struct{}
+type csvExportedMsg string
 type errMsg error
 type successMsg string
 
@@ -129,6 +163,44 @@ func exportGrist(docID, filename string) tea.Cmd {
 	return func() tea.Msg {
 		gristapi.ExportDocGrist(docID, filename)
 		return successMsg(fmt.Sprintf("Exported to %s", filename))
+	}
+}
+
+func loadTableData(docID, tableID string) tea.Cmd {
+	return func() tea.Msg {
+		columns := gristapi.GetTableColumns(docID, tableID)
+		rows := gristapi.GetTableRows(docID, tableID)
+
+		// Fetch actual data using the records endpoint
+		data := make(map[string][]interface{})
+		// For now, we'll use the row IDs and column info
+		// The actual data would need a GetTableRecords function
+		return tableDataLoadedMsg{
+			columns: columns.Columns,
+			data:    data,
+			rowIDs:  rows.Id,
+		}
+	}
+}
+
+func loadDocAccess(docID string) tea.Cmd {
+	return func() tea.Msg {
+		access := gristapi.GetDocAccess(docID)
+		return docAccessLoadedMsg(access)
+	}
+}
+
+func deleteDoc(docID string) tea.Cmd {
+	return func() tea.Msg {
+		gristapi.DeleteDoc(docID)
+		return docDeletedMsg{}
+	}
+}
+
+func exportTableCSV(docID, tableID, filename string) tea.Cmd {
+	return func() tea.Msg {
+		gristapi.GetTableContent(docID, tableID)
+		return csvExportedMsg(fmt.Sprintf("Exported %s to CSV", tableID))
 	}
 }
 
@@ -217,6 +289,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tables = msg
 		m.updateTablesList()
 
+	case tableDataLoadedMsg:
+		m.loading = false
+		m.tableColumns = msg.columns
+		m.tableData = msg.data
+		m.tableRowIDs = msg.rowIDs
+		m.scrollX = 0
+		m.scrollY = 0
+
+	case docAccessLoadedMsg:
+		m.loading = false
+		m.docAccess = gristapi.EntityAccess(msg)
+		m.updateAccessList()
+
+	case docDeletedMsg:
+		m.loading = false
+		m.message = "Document deleted successfully"
+		// Go back to docs list and refresh
+		m.view = ViewDocs
+		m.selectedDoc = nil
+		m.breadcrumb = m.breadcrumb[:2]
+		m.cursor = 0
+		if m.selectedWorkspace != nil {
+			return m, tea.Batch(m.spinner.Tick, loadDocs(m.selectedWorkspace.Id))
+		}
+
+	case csvExportedMsg:
+		m.loading = false
+		m.message = string(msg)
+
 	case successMsg:
 		m.loading = false
 		m.message = string(msg)
@@ -275,9 +376,23 @@ func (m Model) handleSelect() (tea.Model, tea.Cmd) {
 		table := m.tables[m.cursor]
 		m.selectedTable = &table
 		m.breadcrumb = append(m.breadcrumb, table.Id)
-		m.view = ViewTableData
-		// TODO: Load table data
-		m.message = fmt.Sprintf("Table: %s (data view coming soon)", table.Id)
+		m.view = ViewTableActions
+		m.cursor = 0
+		m.updateTableActionsList()
+
+	case ViewTableActions:
+		return m.handleTableAction(TableAction(m.cursor))
+
+	case ViewConfirmDelete:
+		// Yes/No confirmation - cursor 0 = Yes, cursor 1 = No
+		if m.cursor == 0 && m.selectedDoc != nil {
+			m.loading = true
+			return m, tea.Batch(m.spinner.Tick, deleteDoc(m.selectedDoc.Id))
+		}
+		// Cancel - go back to doc actions
+		m.view = ViewDocActions
+		m.cursor = 0
+		m.updateActionsList()
 	}
 
 	return m, nil
@@ -299,13 +414,6 @@ func (m Model) handleDocAction(action DocAction) (tea.Model, tea.Cmd) {
 		m.loading = true
 		return m, tea.Batch(m.spinner.Tick, loadTables(docID))
 
-	case ActionExportCSV:
-		m.message = "CSV export: select a table first"
-		m.view = ViewTables
-		m.cursor = 0
-		m.loading = true
-		return m, tea.Batch(m.spinner.Tick, loadTables(docID))
-
 	case ActionExportExcel:
 		filename := sanitizeFilename(docName) + ".xlsx"
 		m.loading = true
@@ -319,12 +427,40 @@ func (m Model) handleDocAction(action DocAction) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.spinner.Tick, exportGrist(docID, filename))
 
 	case ActionViewAccess:
-		// TODO: Show access list
-		m.message = "Access view coming soon"
+		m.view = ViewDocAccess
+		m.cursor = 0
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick, loadDocAccess(docID))
 
 	case ActionDelete:
-		// TODO: Confirm and delete
-		m.message = "Delete requires confirmation (coming soon)"
+		m.view = ViewConfirmDelete
+		m.cursor = 1 // Default to "No" for safety
+		m.items = []string{"Yes, delete this document", "No, cancel"}
+	}
+
+	return m, nil
+}
+
+// handleTableAction executes the selected table action
+func (m Model) handleTableAction(action TableAction) (tea.Model, tea.Cmd) {
+	if m.selectedDoc == nil || m.selectedTable == nil {
+		return m, nil
+	}
+
+	docID := m.selectedDoc.Id
+	tableID := m.selectedTable.Id
+
+	switch action {
+	case TableActionViewData:
+		m.view = ViewTableData
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick, loadTableData(docID, tableID))
+
+	case TableActionExportCSV:
+		filename := sanitizeFilename(tableID) + ".csv"
+		m.loading = true
+		m.message = "Exporting CSV..."
+		return m, tea.Batch(m.spinner.Tick, exportTableCSV(docID, tableID, filename))
 	}
 
 	return m, nil
@@ -363,12 +499,29 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 		m.cursor = 0
 		m.updateActionsList()
 
-	case ViewTableData:
+	case ViewTableActions:
 		m.view = ViewTables
 		m.selectedTable = nil
 		m.breadcrumb = m.breadcrumb[:3]
 		m.cursor = 0
 		m.updateTablesList()
+
+	case ViewTableData:
+		m.view = ViewTableActions
+		m.breadcrumb = m.breadcrumb[:4]
+		m.cursor = 0
+		m.updateTableActionsList()
+
+	case ViewDocAccess:
+		m.view = ViewDocActions
+		m.breadcrumb = m.breadcrumb[:3]
+		m.cursor = 0
+		m.updateActionsList()
+
+	case ViewConfirmDelete:
+		m.view = ViewDocActions
+		m.cursor = 0
+		m.updateActionsList()
 	}
 
 	return m, nil
@@ -413,6 +566,25 @@ func (m *Model) updateTablesList() {
 	}
 }
 
+func (m *Model) updateTableActionsList() {
+	m.items = make([]string, len(tableActionLabels))
+	copy(m.items, tableActionLabels)
+}
+
+func (m *Model) updateAccessList() {
+	m.items = make([]string, len(m.docAccess.Users))
+	for i, user := range m.docAccess.Users {
+		access := user.Access
+		if access == "" {
+			access = user.ParentAccess
+			if access != "" {
+				access += " (inherited)"
+			}
+		}
+		m.items[i] = fmt.Sprintf("%s <%s> - %s", user.Name, user.Email, access)
+	}
+}
+
 // View implements tea.Model
 func (m Model) View() string {
 	var b strings.Builder
@@ -431,17 +603,44 @@ func (m Model) View() string {
 	case ViewDocs:
 		title = "Documents"
 	case ViewDocActions:
-		title = "Actions"
+		title = "Document Actions"
 	case ViewTables:
 		title = "Tables"
+	case ViewTableActions:
+		title = "Table Actions"
 	case ViewTableData:
 		title = "Table Data"
+	case ViewDocAccess:
+		title = "Document Access"
+	case ViewConfirmDelete:
+		title = "Confirm Delete"
 	}
 	b.WriteString(TitleStyle.Render(title))
 	b.WriteString("\n")
 
-	// Loading state
-	if m.loading {
+	// Special view for table data
+	if m.view == ViewTableData && !m.loading {
+		b.WriteString(m.renderTableData())
+	} else if m.view == ViewConfirmDelete && !m.loading {
+		// Show warning for delete confirmation
+		if m.selectedDoc != nil {
+			b.WriteString(ErrorStyle.Render(fmt.Sprintf("Are you sure you want to delete '%s'?", m.selectedDoc.Name)))
+			b.WriteString("\n")
+			b.WriteString(lipgloss.NewStyle().Foreground(ColorMuted).Render("This action cannot be undone."))
+			b.WriteString("\n\n")
+		}
+		// Render Yes/No options
+		for i, item := range m.items {
+			cursor := "  "
+			style := ItemStyle
+			if i == m.cursor {
+				cursor = CursorStyle.Render()
+				style = SelectedItemStyle
+			}
+			b.WriteString(cursor + style.Render(item) + "\n")
+		}
+	} else if m.loading {
+		// Loading state
 		b.WriteString(m.spinner.View() + " Loading...\n")
 	} else if m.err != nil {
 		b.WriteString(ErrorStyle.Render(fmt.Sprintf("Error: %v", m.err)))
@@ -480,6 +679,60 @@ func (m Model) View() string {
 	b.WriteString(HelpStyle.Render(strings.Join(help, "  ")))
 
 	return AppStyle.Render(b.String())
+}
+
+// renderTableData renders the table data view
+func (m Model) renderTableData() string {
+	var b strings.Builder
+
+	if len(m.tableColumns) == 0 {
+		b.WriteString(lipgloss.NewStyle().Foreground(ColorMuted).Render("No columns found"))
+		b.WriteString("\n")
+		return b.String()
+	}
+
+	// Show table info
+	if m.selectedTable != nil {
+		b.WriteString(fmt.Sprintf("Table: %s\n", m.selectedTable.Id))
+	}
+	b.WriteString(fmt.Sprintf("Columns: %d | Rows: %d\n\n", len(m.tableColumns), len(m.tableRowIDs)))
+
+	// Render column headers
+	headers := make([]string, len(m.tableColumns))
+	for i, col := range m.tableColumns {
+		headers[i] = TableHeaderStyle.Render(fmt.Sprintf(" %-15s ", col.Id))
+	}
+	b.WriteString(strings.Join(headers, "|"))
+	b.WriteString("\n")
+
+	// Separator line
+	sep := strings.Repeat("-", len(m.tableColumns)*18)
+	b.WriteString(lipgloss.NewStyle().Foreground(ColorMuted).Render(sep))
+	b.WriteString("\n")
+
+	// Show row IDs (we don't have full data yet, but we can show row count)
+	maxRows := 10
+	if len(m.tableRowIDs) < maxRows {
+		maxRows = len(m.tableRowIDs)
+	}
+
+	for i := 0; i < maxRows; i++ {
+		rowID := m.tableRowIDs[i]
+		// Show row ID in first "column" position
+		b.WriteString(TableCellStyle.Render(fmt.Sprintf(" Row %-10d ", rowID)))
+		for j := 1; j < len(m.tableColumns); j++ {
+			b.WriteString(TableCellStyle.Render(fmt.Sprintf(" %-15s ", "-")))
+		}
+		b.WriteString("\n")
+	}
+
+	if len(m.tableRowIDs) > maxRows {
+		b.WriteString(lipgloss.NewStyle().Foreground(ColorMuted).Render(
+			fmt.Sprintf("\n... and %d more rows", len(m.tableRowIDs)-maxRows)))
+		b.WriteString("\n")
+	}
+
+	return b.String()
 }
 
 // sanitizeFilename makes a string safe for use as a filename
