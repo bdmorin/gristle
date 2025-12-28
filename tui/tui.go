@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Ville-Eurometropole-Strasbourg/grist-ctl/gristapi"
+	"github.com/bdmorin/gristle/gristapi"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"

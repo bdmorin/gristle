@@ -11,10 +11,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Ville-Eurometropole-Strasbourg/grist-ctl/gristapi"
-	"github.com/Ville-Eurometropole-Strasbourg/grist-ctl/gristtools"
-	mcpserver "github.com/Ville-Eurometropole-Strasbourg/grist-ctl/mcp"
-	"github.com/Ville-Eurometropole-Strasbourg/grist-ctl/tui"
+	"github.com/bdmorin/gristle/gristapi"
+	"github.com/bdmorin/gristle/gristtools"
+	mcpserver "github.com/bdmorin/gristle/mcp"
+	"github.com/bdmorin/gristle/tui"
 )
 
 var version = "Undefined"
