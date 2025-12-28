@@ -995,3 +995,157 @@ func GetDocWebhooks(docId string) []Webhook {
 	json.Unmarshal([]byte(response), &webhooks)
 	return webhooks.Webhooks
 }
+
+// Webhook API Types
+// See: https://support.getgrist.com/api/#tag/webhooks
+
+// WebhookFields contains the configurable fields for a webhook
+type WebhookFields struct {
+	Name           string   `json:"name"`
+	Memo           string   `json:"memo"`
+	URL            string   `json:"url"`
+	Enabled        bool     `json:"enabled"`
+	UnsubscribeKey string   `json:"unsubscribeKey,omitempty"`
+	EventTypes     []string `json:"eventTypes"`
+	IsReadyColumn  *string  `json:"isReadyColumn"` // nullable
+	TableId        string   `json:"tableId"`
+}
+
+// WebhookPartialFields contains optional fields for creating/updating webhooks
+type WebhookPartialFields struct {
+	Name          *string   `json:"name,omitempty"`
+	Memo          *string   `json:"memo,omitempty"`
+	URL           *string   `json:"url,omitempty"`
+	Enabled       *bool     `json:"enabled,omitempty"`
+	EventTypes    *[]string `json:"eventTypes,omitempty"`
+	IsReadyColumn *string   `json:"isReadyColumn,omitempty"`
+	TableId       *string   `json:"tableId,omitempty"`
+}
+
+// WebhookBatchStatus contains status of the last event batch
+type WebhookBatchStatus struct {
+	Size      int    `json:"size"`
+	ErroredAt *int64 `json:"erroredAt,omitempty"`
+	Status    string `json:"status"`
+	Attempts  int    `json:"attempts"`
+}
+
+// WebhookUsage contains operational metrics for a webhook
+type WebhookUsage struct {
+	NumWaiting       int                 `json:"numWaiting"`
+	Status           string              `json:"status"`
+	UpdatedTime      *int64              `json:"updatedTime,omitempty"`
+	LastSuccessTime  *int64              `json:"lastSuccessTime,omitempty"`
+	LastFailureTime  *int64              `json:"lastFailureTime,omitempty"`
+	LastErrorMessage *string             `json:"lastErrorMessage,omitempty"`
+	LastHttpStatus   *int                `json:"lastHttpStatus,omitempty"`
+	LastEventBatch   *WebhookBatchStatus `json:"lastEventBatch,omitempty"`
+}
+
+// Webhook represents a single webhook configuration
+type Webhook struct {
+	Id     string        `json:"id"`
+	Fields WebhookFields `json:"fields"`
+	Usage  *WebhookUsage `json:"usage,omitempty"`
+}
+
+// WebhooksList represents the response from GET /webhooks
+type WebhooksList struct {
+	Webhooks []Webhook `json:"webhooks"`
+}
+
+// WebhookCreateRequest represents a single webhook to create
+type WebhookCreateRequest struct {
+	Fields WebhookPartialFields `json:"fields"`
+}
+
+// WebhooksCreateRequest represents the request body for POST /webhooks
+type WebhooksCreateRequest struct {
+	Webhooks []WebhookCreateRequest `json:"webhooks"`
+}
+
+// WebhookId represents a webhook ID in create response
+type WebhookId struct {
+	Id string `json:"id"`
+}
+
+// WebhooksCreateResponse represents the response from POST /webhooks
+type WebhooksCreateResponse struct {
+	Webhooks []WebhookId `json:"webhooks"`
+}
+
+// WebhookDeleteResponse represents the response from DELETE /webhooks/{webhookId}
+type WebhookDeleteResponse struct {
+	Success bool `json:"success"`
+}
+
+// GetWebhooks retrieves all webhooks for a document
+// GET /docs/{docId}/webhooks
+func GetWebhooks(docId string) (WebhooksList, int) {
+	webhooks := WebhooksList{}
+	url := fmt.Sprintf("docs/%s/webhooks", docId)
+	response, status := httpGet(url, "")
+	if status == http.StatusOK {
+		json.Unmarshal([]byte(response), &webhooks)
+	}
+	return webhooks, status
+}
+
+// CreateWebhooks creates one or more webhooks for a document
+// POST /docs/{docId}/webhooks
+func CreateWebhooks(docId string, webhooks []WebhookPartialFields) (WebhooksCreateResponse, int) {
+	result := WebhooksCreateResponse{}
+
+	// Build request body
+	request := WebhooksCreateRequest{
+		Webhooks: make([]WebhookCreateRequest, len(webhooks)),
+	}
+	for i, fields := range webhooks {
+		request.Webhooks[i] = WebhookCreateRequest{Fields: fields}
+	}
+
+	bodyJSON, err := json.Marshal(request)
+	if err != nil {
+		return result, -1
+	}
+
+	url := fmt.Sprintf("docs/%s/webhooks", docId)
+	response, status := httpPost(url, string(bodyJSON))
+	if status == http.StatusOK {
+		json.Unmarshal([]byte(response), &result)
+	}
+	return result, status
+}
+
+// UpdateWebhook modifies an existing webhook
+// PATCH /docs/{docId}/webhooks/{webhookId}
+func UpdateWebhook(docId string, webhookId string, fields WebhookPartialFields) (string, int) {
+	bodyJSON, err := json.Marshal(fields)
+	if err != nil {
+		return "", -1
+	}
+
+	url := fmt.Sprintf("docs/%s/webhooks/%s", docId, webhookId)
+	response, status := httpPatch(url, string(bodyJSON))
+	return response, status
+}
+
+// DeleteWebhook removes a webhook from a document
+// DELETE /docs/{docId}/webhooks/{webhookId}
+func DeleteWebhook(docId string, webhookId string) (WebhookDeleteResponse, int) {
+	result := WebhookDeleteResponse{}
+	url := fmt.Sprintf("docs/%s/webhooks/%s", docId, webhookId)
+	response, status := httpDelete(url, "")
+	if status == http.StatusOK {
+		json.Unmarshal([]byte(response), &result)
+	}
+	return result, status
+}
+
+// ClearWebhookQueue empties the webhook queue for a document
+// DELETE /docs/{docId}/webhooks/queue
+func ClearWebhookQueue(docId string) (string, int) {
+	url := fmt.Sprintf("docs/%s/webhooks/queue", docId)
+	response, status := httpDelete(url, "")
+	return response, status
+}

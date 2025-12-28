@@ -1029,3 +1029,371 @@ func TestDeleteUnusedAttachments(t *testing.T) {
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
+
+// Webhook API Tests
+
+func TestGetWebhooks(t *testing.T) {
+	isReadyCol := "ready"
+	expectedWebhooks := WebhooksList{
+		Webhooks: []Webhook{
+			{
+				Id: "webhook-123",
+				Fields: WebhookFields{
+					Name:          "test-webhook",
+					Memo:          "Test webhook memo",
+					URL:           "https://example.com/webhook",
+					Enabled:       true,
+					EventTypes:    []string{"add", "update"},
+					IsReadyColumn: &isReadyCol,
+					TableId:       "Table1",
+				},
+				Usage: &WebhookUsage{
+					NumWaiting: 0,
+					Status:     "idle",
+				},
+			},
+		},
+	}
+
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected GET request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/docs/doc123/webhooks" {
+			t.Errorf("Expected /api/docs/doc123/webhooks, got %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer test-token" {
+			t.Errorf("Expected Bearer token, got %s", r.Header.Get("Authorization"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expectedWebhooks)
+	})
+	defer cleanup()
+
+	webhooks, status := GetWebhooks("doc123")
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+	if len(webhooks.Webhooks) != 1 {
+		t.Errorf("Expected 1 webhook, got %d", len(webhooks.Webhooks))
+	}
+	if webhooks.Webhooks[0].Id != "webhook-123" {
+		t.Errorf("Expected webhook ID 'webhook-123', got %s", webhooks.Webhooks[0].Id)
+	}
+	if webhooks.Webhooks[0].Fields.Name != "test-webhook" {
+		t.Errorf("Expected webhook name 'test-webhook', got %s", webhooks.Webhooks[0].Fields.Name)
+	}
+	if webhooks.Webhooks[0].Fields.URL != "https://example.com/webhook" {
+		t.Errorf("Expected URL 'https://example.com/webhook', got %s", webhooks.Webhooks[0].Fields.URL)
+	}
+	if len(webhooks.Webhooks[0].Fields.EventTypes) != 2 {
+		t.Errorf("Expected 2 event types, got %d", len(webhooks.Webhooks[0].Fields.EventTypes))
+	}
+}
+
+func TestGetWebhooks_EmptyList(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(WebhooksList{Webhooks: []Webhook{}})
+	})
+	defer cleanup()
+
+	webhooks, status := GetWebhooks("doc123")
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+	if len(webhooks.Webhooks) != 0 {
+		t.Errorf("Expected 0 webhooks, got %d", len(webhooks.Webhooks))
+	}
+}
+
+func TestCreateWebhooks(t *testing.T) {
+	expectedResponse := WebhooksCreateResponse{
+		Webhooks: []WebhookId{
+			{Id: "webhook-new-1"},
+			{Id: "webhook-new-2"},
+		},
+	}
+
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected POST request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/docs/doc123/webhooks" {
+			t.Errorf("Expected /api/docs/doc123/webhooks, got %s", r.URL.Path)
+		}
+
+		var body WebhooksCreateRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("Failed to decode request body: %v", err)
+		}
+		if len(body.Webhooks) != 2 {
+			t.Errorf("Expected 2 webhooks in request, got %d", len(body.Webhooks))
+		}
+		if body.Webhooks[0].Fields.URL == nil || *body.Webhooks[0].Fields.URL != "https://example.com/hook1" {
+			t.Errorf("Expected URL 'https://example.com/hook1', got %v", body.Webhooks[0].Fields.URL)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expectedResponse)
+	})
+	defer cleanup()
+
+	url1 := "https://example.com/hook1"
+	url2 := "https://example.com/hook2"
+	name1 := "webhook-1"
+	name2 := "webhook-2"
+	tableId := "Table1"
+	enabled := true
+	eventTypes := []string{"add"}
+
+	webhooks := []WebhookPartialFields{
+		{
+			Name:       &name1,
+			URL:        &url1,
+			TableId:    &tableId,
+			Enabled:    &enabled,
+			EventTypes: &eventTypes,
+		},
+		{
+			Name:       &name2,
+			URL:        &url2,
+			TableId:    &tableId,
+			Enabled:    &enabled,
+			EventTypes: &eventTypes,
+		},
+	}
+
+	result, status := CreateWebhooks("doc123", webhooks)
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+	if len(result.Webhooks) != 2 {
+		t.Errorf("Expected 2 webhook IDs, got %d", len(result.Webhooks))
+	}
+	if result.Webhooks[0].Id != "webhook-new-1" {
+		t.Errorf("Expected webhook ID 'webhook-new-1', got %s", result.Webhooks[0].Id)
+	}
+}
+
+func TestCreateWebhooks_SingleWebhook(t *testing.T) {
+	expectedResponse := WebhooksCreateResponse{
+		Webhooks: []WebhookId{{Id: "webhook-single"}},
+	}
+
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		var body WebhooksCreateRequest
+		json.NewDecoder(r.Body).Decode(&body)
+		if len(body.Webhooks) != 1 {
+			t.Errorf("Expected 1 webhook in request, got %d", len(body.Webhooks))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expectedResponse)
+	})
+	defer cleanup()
+
+	url := "https://example.com/single"
+	name := "single-webhook"
+	tableId := "Table1"
+	eventTypes := []string{"add", "update"}
+
+	webhooks := []WebhookPartialFields{
+		{
+			Name:       &name,
+			URL:        &url,
+			TableId:    &tableId,
+			EventTypes: &eventTypes,
+		},
+	}
+
+	result, status := CreateWebhooks("doc123", webhooks)
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+	if result.Webhooks[0].Id != "webhook-single" {
+		t.Errorf("Expected webhook ID 'webhook-single', got %s", result.Webhooks[0].Id)
+	}
+}
+
+func TestUpdateWebhook(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" {
+			t.Errorf("Expected PATCH request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/docs/doc123/webhooks/webhook-456" {
+			t.Errorf("Expected /api/docs/doc123/webhooks/webhook-456, got %s", r.URL.Path)
+		}
+
+		var body WebhookPartialFields
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("Failed to decode request body: %v", err)
+		}
+		if body.Enabled == nil || *body.Enabled != false {
+			t.Errorf("Expected enabled=false, got %v", body.Enabled)
+		}
+		if body.Name == nil || *body.Name != "updated-name" {
+			t.Errorf("Expected name='updated-name', got %v", body.Name)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	enabled := false
+	name := "updated-name"
+	fields := WebhookPartialFields{
+		Enabled: &enabled,
+		Name:    &name,
+	}
+
+	_, status := UpdateWebhook("doc123", "webhook-456", fields)
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+}
+
+func TestUpdateWebhook_ChangeURL(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		var body WebhookPartialFields
+		json.NewDecoder(r.Body).Decode(&body)
+		if body.URL == nil || *body.URL != "https://new-url.com/webhook" {
+			t.Errorf("Expected URL 'https://new-url.com/webhook', got %v", body.URL)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	url := "https://new-url.com/webhook"
+	fields := WebhookPartialFields{
+		URL: &url,
+	}
+
+	_, status := UpdateWebhook("doc123", "webhook-789", fields)
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+}
+
+func TestDeleteWebhook(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("Expected DELETE request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/docs/doc123/webhooks/webhook-to-delete" {
+			t.Errorf("Expected /api/docs/doc123/webhooks/webhook-to-delete, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(WebhookDeleteResponse{Success: true})
+	})
+	defer cleanup()
+
+	result, status := DeleteWebhook("doc123", "webhook-to-delete")
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+	if !result.Success {
+		t.Error("Expected success=true")
+	}
+}
+
+func TestDeleteWebhook_NotFound(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Webhook not found"})
+	})
+	defer cleanup()
+
+	_, status := DeleteWebhook("doc123", "nonexistent")
+	if status != http.StatusNotFound {
+		t.Errorf("Expected status 404, got %d", status)
+	}
+}
+
+func TestClearWebhookQueue(t *testing.T) {
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("Expected DELETE request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/docs/doc123/webhooks/queue" {
+			t.Errorf("Expected /api/docs/doc123/webhooks/queue, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	_, status := ClearWebhookQueue("doc123")
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+}
+
+func TestWebhookUsage_WithAllFields(t *testing.T) {
+	successTime := int64(1703980800000)
+	failureTime := int64(1703977200000)
+	errorMsg := "Connection timeout"
+	httpStatus := 504
+
+	expectedWebhooks := WebhooksList{
+		Webhooks: []Webhook{
+			{
+				Id: "webhook-usage-test",
+				Fields: WebhookFields{
+					Name:       "usage-test",
+					URL:        "https://example.com/webhook",
+					Enabled:    true,
+					EventTypes: []string{"add"},
+					TableId:    "Table1",
+				},
+				Usage: &WebhookUsage{
+					NumWaiting:       5,
+					Status:           "retrying",
+					LastSuccessTime:  &successTime,
+					LastFailureTime:  &failureTime,
+					LastErrorMessage: &errorMsg,
+					LastHttpStatus:   &httpStatus,
+					LastEventBatch: &WebhookBatchStatus{
+						Size:     10,
+						Status:   "failure",
+						Attempts: 3,
+					},
+				},
+			},
+		},
+	}
+
+	_, cleanup := setupMockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expectedWebhooks)
+	})
+	defer cleanup()
+
+	webhooks, status := GetWebhooks("doc123")
+	if status != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", status)
+	}
+
+	usage := webhooks.Webhooks[0].Usage
+	if usage == nil {
+		t.Fatal("Expected usage to be non-nil")
+	}
+	if usage.NumWaiting != 5 {
+		t.Errorf("Expected numWaiting=5, got %d", usage.NumWaiting)
+	}
+	if usage.Status != "retrying" {
+		t.Errorf("Expected status='retrying', got %s", usage.Status)
+	}
+	if usage.LastSuccessTime == nil || *usage.LastSuccessTime != successTime {
+		t.Errorf("Expected lastSuccessTime=%d, got %v", successTime, usage.LastSuccessTime)
+	}
+	if usage.LastErrorMessage == nil || *usage.LastErrorMessage != errorMsg {
+		t.Errorf("Expected lastErrorMessage='%s', got %v", errorMsg, usage.LastErrorMessage)
+	}
+	if usage.LastEventBatch == nil || usage.LastEventBatch.Size != 10 {
+		t.Errorf("Expected lastEventBatch.size=10, got %v", usage.LastEventBatch)
+	}
+}
