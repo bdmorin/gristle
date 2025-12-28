@@ -969,7 +969,7 @@ func MoveAllDocs(fromWorkspaceId int, toWorkspaceId int) {
 	to_ws := gristapi.GetWorkspace(toWorkspaceId)
 
 	if from_ws.Id == 0 || to_ws.Id == 0 {
-		fmt.Printf("❗️ Workspace %d not found ❗️\n", from_ws)
+		fmt.Printf("❗️ Workspace %d or %d not found ❗️\n", fromWorkspaceId, toWorkspaceId)
 	} else {
 		gristapi.MoveAllDocs(fromWorkspaceId, toWorkspaceId)
 	}
