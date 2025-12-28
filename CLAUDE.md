@@ -84,3 +84,41 @@ Many Grist API endpoints are tracked as tasks in vibe-kanban. Check the task lis
 - Use structured error handling
 - Prefer table-driven tests
 - Keep handlers focused and testable
+
+## MCP Server Tools
+
+The MCP server exposes these tools for AI agents:
+
+| Tool | Description |
+|------|-------------|
+| `list_orgs` | List all accessible organizations |
+| `list_workspaces` | List workspaces in an org (requires `org_id`) |
+| `list_docs` | List documents in a workspace (requires `workspace_id`) |
+| `get_doc` | Get document details + table list (requires `doc_id`) |
+| `get_doc_tables` | Get tables with column info (requires `doc_id`) |
+| `export_doc` | Export to Excel or Grist format (requires `doc_id`, `format`) |
+
+## TUI Features
+
+- Launches by default when running `./gristctl` with no args
+- Hierarchical navigation: Orgs → Workspaces → Documents → Actions
+- Keyboard: `↑/k` `↓/j` navigate, `Enter` select, `Esc` back, `q` quit
+- Document actions: View Tables, Export (CSV/Excel/Grist), View Access, Delete
+
+## File Structure
+
+```
+grist-ctl/
+├── main.go              # Entry point, command routing
+├── tui/
+│   ├── tui.go           # Bubbletea model, views, navigation
+│   ├── styles.go        # Lipgloss styling
+│   └── keys.go          # Keybindings
+├── mcp/
+│   └── server.go        # MCP server with tools
+├── gristapi/            # API client
+├── gristtools/          # CLI display helpers
+├── common/              # Utilities
+├── docs/research/       # MCP best practices research
+└── go.mod
+```
