@@ -1403,3 +1403,12 @@ func ClearWebhookQueue(docId string) (string, int) {
 	response, status := httpDelete(url, "")
 	return response, status
 }
+
+// Retrieves the list of webhooks for a document
+func GetDocWebhooks(docId string) []Webhook {
+	webhooks := WebhooksList{}
+	url := fmt.Sprintf("docs/%s/webhooks", docId)
+	response, _ := httpGet(url, "")
+	json.Unmarshal([]byte(response), &webhooks)
+	return webhooks.Webhooks
+}
