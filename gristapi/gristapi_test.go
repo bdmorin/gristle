@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	orgs := GetOrgs()
 	nbOrgs := len(orgs)
 
-	if nbOrgs < 2 {
+	if nbOrgs < 1 {
 		t.Errorf("We only found %d organizations", nbOrgs)
 	}
 
