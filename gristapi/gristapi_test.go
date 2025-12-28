@@ -407,4 +407,3 @@ func TestDeleteRecords(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", status)
 	}
 }
-
