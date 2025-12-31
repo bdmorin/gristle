@@ -9,3 +9,4 @@ gristle.exe
 # Git worktrees (Crystal)
 /worktrees/
 /worktree-*/
+*.test

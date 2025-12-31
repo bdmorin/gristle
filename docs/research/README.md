@@ -6,6 +6,7 @@ This directory contains comprehensive research on Go MCP (Model Context Protocol
 
 | Document | Description |
 |----------|-------------|
+| [**mcp-best-practices-2025.md**](./mcp-best-practices-2025.md) | **Comprehensive 2025 guide consolidating all best practices with gristle analysis** |
 | [mcp-go-libraries.md](./mcp-go-libraries.md) | Comparison of Go MCP libraries (official SDK, mark3labs, metoro-io) |
 | [mcp-performance-patterns.md](./mcp-performance-patterns.md) | Performance optimization for network I/O, JSON, connection pooling |
 | [mcp-security-practices.md](./mcp-security-practices.md) | Security best practices, CVEs, input validation, rate limiting |
