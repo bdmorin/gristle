@@ -884,6 +884,74 @@ func SCIMBulk(request SCIMBulkRequest) (SCIMBulkResponse, int) {
 	return response, http.StatusOK
 }
 
+// createSCIMError creates a SCIM error response
+func createSCIMError(detail, status, scimType string) SCIMError {
+	return SCIMError{
+		Schemas:  []string{SCIMErrorSchema},
+		Detail:   detail,
+		Status:   status,
+		ScimType: scimType,
+	}
+}
+
+// validateSCIMMethod validates the HTTP method for SCIM operations
+func validateSCIMMethod(method string) error {
+	validMethods := map[string]bool{
+		"POST": true, "PUT": true, "PATCH": true, "DELETE": true,
+	}
+	if !validMethods[method] {
+		return fmt.Errorf("invalid method: %s", method)
+	}
+	return nil
+}
+
+// marshalSCIMData marshals operation data to JSON
+func marshalSCIMData(data interface{}) ([]byte, error) {
+	if data == nil {
+		return []byte{}, nil
+	}
+	return json.Marshal(data)
+}
+
+// executeSCIMRequest performs the HTTP request for a SCIM operation
+func executeSCIMRequest(method, scimPath, bodyJSON string) (string, int) {
+	switch method {
+	case "POST":
+		return httpPost(scimPath, bodyJSON)
+	case "PUT":
+		return httpPut(scimPath, bodyJSON)
+	case "PATCH":
+		return httpPatch(scimPath, bodyJSON)
+	case "DELETE":
+		return httpDelete(scimPath, bodyJSON)
+	default:
+		return "", 400
+	}
+}
+
+// parseSCIMResponse parses the response body into the appropriate type
+func parseSCIMResponse(respBody string) interface{} {
+	if respBody == "" {
+		return nil
+	}
+	var respData interface{}
+	if err := json.Unmarshal([]byte(respBody), &respData); err == nil {
+		return respData
+	}
+	return respBody
+}
+
+// setLocationHeader constructs the location header for successful operations
+func setLocationHeader(response *SCIMBulkOperationResponse, statusCode int, method, opPath string) {
+	if statusCode >= 200 && statusCode < 300 && (method == "POST" || method == "PUT") {
+		if respMap, ok := response.Response.(map[string]interface{}); ok {
+			if id, ok := respMap["id"]; ok {
+				response.Location = fmt.Sprintf("%s/api/scim/v2%s/%v", os.Getenv("GRIST_URL"), opPath, id)
+			}
+		}
+	}
+}
+
 // executeSCIMOperation executes a single SCIM bulk operation
 func executeSCIMOperation(op SCIMBulkOperation) SCIMBulkOperationResponse {
 	response := SCIMBulkOperationResponse{
@@ -892,90 +960,39 @@ func executeSCIMOperation(op SCIMBulkOperation) SCIMBulkOperationResponse {
 	}
 
 	// Validate method
-	validMethods := map[string]bool{
-		"POST":   true,
-		"PUT":    true,
-		"PATCH":  true,
-		"DELETE": true,
-	}
-	if !validMethods[op.Method] {
+	if err := validateSCIMMethod(op.Method); err != nil {
 		response.Status = "400"
-		response.Response = SCIMError{
-			Schemas:  []string{SCIMErrorSchema},
-			Detail:   fmt.Sprintf("Invalid method: %s", op.Method),
-			Status:   "400",
-			ScimType: "invalidSyntax",
-		}
+		response.Response = createSCIMError(err.Error(), "400", "invalidSyntax")
 		return response
 	}
 
 	// Validate path
 	if op.Path == "" {
 		response.Status = "400"
-		response.Response = SCIMError{
-			Schemas:  []string{SCIMErrorSchema},
-			Detail:   "Path is required",
-			Status:   "400",
-			ScimType: "invalidSyntax",
-		}
+		response.Response = createSCIMError("Path is required", "400", "invalidSyntax")
 		return response
 	}
 
 	// Build the SCIM API path
 	scimPath := "scim/v2" + op.Path
 
-	// Execute the operation
-	var bodyJSON []byte
-	var err error
-	if op.Data != nil {
-		bodyJSON, err = json.Marshal(op.Data)
-		if err != nil {
-			response.Status = "400"
-			response.Response = SCIMError{
-				Schemas:  []string{SCIMErrorSchema},
-				Detail:   "Invalid request data",
-				Status:   "400",
-				ScimType: "invalidSyntax",
-			}
-			return response
-		}
+	// Marshal request data
+	bodyJSON, err := marshalSCIMData(op.Data)
+	if err != nil {
+		response.Status = "400"
+		response.Response = createSCIMError("Invalid request data", "400", "invalidSyntax")
+		return response
 	}
 
-	var respBody string
-	var statusCode int
-
-	switch op.Method {
-	case "POST":
-		respBody, statusCode = httpPost(scimPath, string(bodyJSON))
-	case "PUT":
-		respBody, statusCode = httpPut(scimPath, string(bodyJSON))
-	case "PATCH":
-		respBody, statusCode = httpPatch(scimPath, string(bodyJSON))
-	case "DELETE":
-		respBody, statusCode = httpDelete(scimPath, string(bodyJSON))
-	}
-
+	// Execute the HTTP request
+	respBody, statusCode := executeSCIMRequest(op.Method, scimPath, string(bodyJSON))
 	response.Status = fmt.Sprintf("%d", statusCode)
 
-	// Parse response body if present
-	if respBody != "" {
-		var respData interface{}
-		if err := json.Unmarshal([]byte(respBody), &respData); err == nil {
-			response.Response = respData
-		} else {
-			response.Response = respBody
-		}
-	}
+	// Parse the response body
+	response.Response = parseSCIMResponse(respBody)
 
-	// Set location header for successful POST/PUT operations
-	if statusCode >= 200 && statusCode < 300 && (op.Method == "POST" || op.Method == "PUT") {
-		// Try to extract id from response for location
-		if respMap, ok := response.Response.(map[string]interface{}); ok {
-			if id, ok := respMap["id"]; ok {
-				response.Location = fmt.Sprintf("%s/api/scim/v2%s/%v", os.Getenv("GRIST_URL"), op.Path, id)
-			}
-		}
-	}
+	// Set location header for successful operations
+	setLocationHeader(&response, statusCode, op.Method, op.Path)
 
 	return response
 }
